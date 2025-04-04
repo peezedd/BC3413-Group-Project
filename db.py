@@ -136,7 +136,13 @@ def view_portfolio(username, conn):
 
     if not holdings:
         print("\nYour portfolio is empty.")
-        return
+        return {
+            "portfolio": [],
+            "total_realized_pnl": 0,
+            "total_unrealized_pnl": 0,
+            "ticker_values": {},
+            "total_portfolio_value": 0
+        }
 
     portfolio_data = []  # For CSV export
     total_unrealized_pnl = 0  # Track total unrealized P/L
@@ -167,10 +173,10 @@ def view_portfolio(username, conn):
             "ticker": ticker,
             "shares": shares,
             "sector": sector,
-            "purchase_price": purchase_price,
+            "purchase_price": f"{float(purchase_price):,.2f}",
             "current_price": current_price if current_price > 0 else "N/A",
-            "unrealized_pnl": unrealized_pnl,
-            "realized_pnl": realized_pnl
+            "unrealized_pnl": f"{float(unrealized_pnl):,.2f}",
+            "realized_pnl": f"{float(realized_pnl):,.2f}"
             })
 
         total_portfolio_value = sum(ticker_values.values()) if ticker_values else 0
@@ -214,8 +220,10 @@ def visualise_portfolio(username):
         if remaining_shares > 0:  # Only include if there are still shares available
             stock_data = fetch_stock_data(ticker)
             stock_price = stock_data.get('Previous Close', 0)
-            total_value = stock_price * remaining_shares
-            ticker_values[ticker] += total_value
+
+            if stock_price>0:
+                total_value = stock_price * remaining_shares
+                ticker_values[ticker] += total_value
 
     total_portfolio_value = sum(ticker_values.values())
 
@@ -282,5 +290,8 @@ def import_portfolio_from_csv(username, file_path):
 
     os.remove(file_path)  # Remove the file after processing
     return None  # Return None if no errors occurred
+
+
+
 
 

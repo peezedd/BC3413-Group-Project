@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Easy Finance Dashboard</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -123,26 +122,32 @@
         }
         .container {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;  /* Centers everything horizontally */
             align-items: flex-start;
-            padding: 20px;
-            flex-wrap: wrap;
-        }
+            gap: 40px; /* Space between chart and tables */
+}
+
         .chart-container {
             flex: 1;
             max-width: 45%;
-            text-align: left;
-            margin-right: 20px;
+            text-align: center; /* Centers chart title */
         }
-        .table-container {
+
+       .table-container {
             flex: 1;
-            max-width: 45%;
+            max-width: 50%;
+            text-align: center; /* Centers "Your Portfolio" title */
             display: flex;
             flex-direction: column;
+            align-items: center;
+            gap: 15px;
         }
-        .table-container .table {
-            margin-bottom: 20px;
-        }
+       .table-container table {
+           width: 100%;
+           border-collapse: collapse;
+           background: white;
+       }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -157,6 +162,7 @@
             background-color: #0d47a1;
             color: white;
         }
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -261,7 +267,11 @@
                     <a href="#">Change Risk Tolerance</a>
                 </div>
             </div>
-            <button class="logout-button">Logout</button>
+{#            {% if session.get('username') %} #Currently have not linked the login function #}
+            <form action="{{ url_for('logout') }}" method="POST">
+                <button type="submit" class="logout-button">Logout</button>
+            </form>
+{#            {% endif %}#}
         </div>
     </div>
     <div class="welcome-section">
@@ -273,14 +283,18 @@
         <button class="add-stock-button" onclick="location.href='/add_stock'">Add Stocks</button>
     </div>
     {% else %}
-    <div class="container">
-    <div class="row">
-        <div class="col-md-6">
+        <div class="container">
+        <!-- Pie Chart (Left Side) -->
+        <div class="chart-container">
             <h3>Portfolio Allocation</h3>
             <img src="{{ url_for('portfolio_chart', username=username) }}" class="img-fluid" alt="Portfolio Chart">
         </div>
-        <div class="col-md-6">
+
+        <!-- Table (Right Side) -->
+            <div class="table-container">
             <h3>Your Portfolio</h3>
+         <div class="split-table">
+            <!-- Table 1: Ticker, Shares, Sector, Purchase Price -->
             <table class="table">
                 <thead>
                     <tr>
@@ -288,6 +302,24 @@
                         <th>Shares</th>
                         <th>Sector</th>
                         <th>Purchase Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in portfolio %}
+                    <tr>
+                        <td>{{ stock.ticker }}</td>
+                        <td>{{ stock.shares }}</td>
+                        <td>{{ stock.sector }}</td>
+                        <td>${{ stock.purchase_price }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Table 2: Live Price, Unrealized P/L, Realized P/L -->
+            <table class="table">
+                <thead>
+                    <tr>
                         <th>Live Price</th>
                         <th>Unrealized P/L</th>
                         <th>Realized P/L</th>
@@ -296,44 +328,26 @@
                 <tbody>
                     {% for stock in portfolio %}
                     <tr>
-                        <td>{{ stock[0] }}</td>
-                        <td>{{ stock[1] }}</td>
-                        <td>{{ stock[2] }}</td>
-                        <td>${{ stock[3] }}</td>
-                        <td>${{ stock[4] }}</td>
-                        <td>${{ stock[5] }}</td>
-                        <td>${{ stock[6] }}</td>
+                        <td>${{ stock.purchase_price }}</td>
+                        <td>${{ stock.unrealized_pnl }}</td>
+                        <td>${{ stock.realized_pnl }}</td>
+
                     </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-        </div>
-    </div>
-    </div>
-    {% endif %}
-            {% if session.get('username') %}
-            <form action="{{ url_for('logout') }}" method="POST">
-                <button type="submit" class="btn btn-danger">Logout</button>
-            </form>
+                    {% endfor %}
+                </tbody>
+            </table>
             <!-- Export Portfolio Button -->
             <div class="export-container">
                 <button class="export-button" onclick="location.href='/export_portfolio/{{ username }}'">Export Portfolio</button>
             </div>
+        </div>
+    </div>
+        </div>
+    {% endif %}
 
-            {% endif %}
             </div>
         </div>
     </div>
-    <div style="display: flex; justify-content: space-between;">
-    <!-- Pie Chart (Left) -->
-    <div style="width: 40%;">
-        <canvas id="portfolio-chart"></canvas>
-    </div>
-
-    <!-- Portfolio Table (Right) -->
-    <div id="portfolio-table" style="width: 55%;"></div>
-</div>
-
 
 
 
@@ -360,28 +374,22 @@
     {% endif %}
 {% endwith %}
     </div>
+
     <script>
-        var ctx = document.getElementById('portfolioChart').getContext('2d');
-        var portfolioChart = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: {{ chart_labels | tojson }},
-                datasets: [{
-                    data: {{ chart_values | tojson }},
-                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#FF9800']
-                }]
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch("/portfolio")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch portfolio data');
             }
-        });
-    </script>
-    <script>
-document.addEventListener("DOMContentLoaded", function() {
-    fetch("/portfolio")
-        .then(response => response.json())
-        .then(data => {
+            return response.json();
+        })
+
+            .then(data => {
             if (data.error) {
                 document.getElementById("portfolio-table").innerHTML = `<p>${data.error}</p>`;
                 return;
-            }
+            })
 
             // Populate table
             let tableHTML = `
@@ -431,8 +439,11 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
         })
-        .catch(error => console.error("Error loading portfolio:", error));
-});
+        .catch(error => {
+            console.error("Error loading portfolio:", error);
+            document.getElementById("portfolio-table").innerHTML = `<p>Error: ${error.message}</p>`;
+        });
+
 </script>
 </body>
 </html>

@@ -9,6 +9,9 @@ import os
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
+# Define the folder for uploaded files
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['ALLOWED_EXTENSIONS'] = {'csv'}
 
 
 
@@ -41,6 +44,7 @@ def dashboard(username):
         total_portfolio_value = portfolio_data.get("total_portfolio_value", 0)
 
     chart_path = visualise_portfolio(username)  # Fetch pie chart data
+
     is_empty = len(portfolio) == 0 #Check if portfolio is empty
 
     return render_template(
@@ -62,9 +66,11 @@ def portfolio_chart(username):
         return send_file(chart_path, mimetype='image/png')
     return "No chart available", 404
 
+
 @app.route("/export_portfolio/<username>")
 def export_portfolio(username):
-    portfolio = view_portfolio(username)  # Fetch portfolio data from DB
+    conn = init_db()
+    portfolio = view_portfolio(username, conn)["portfolio"]  # Fetch portfolio data from DB
     filename = f"portfolio_{username}_{datetime.date.today()}.csv"
     filepath = os.path.join("exports", filename)
 
@@ -73,11 +79,19 @@ def export_portfolio(username):
 
     with open(filepath, mode="w", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(["Ticker", "Shares", "Sector", "Purchase Price", "Live Price", "Unrealized P/L", "Realized P/L"])
+        writer.writerow(
+            ["Ticker", "Shares", "Sector", "Purchase Price", "Live Price", "Unrealized P/L", "Realized P/L"])
+
+        # Iterate through the list of dictionaries
         for stock in portfolio:
             writer.writerow([
-                stock.ticker, stock.shares, stock.sector, stock.purchase_price,
-                stock.live_price, stock.unrealized_pl, stock.realized_pl
+                stock["ticker"],
+                stock["shares"],
+                stock["sector"],
+                stock["purchase_price"],
+                stock["current_price"],
+                stock["unrealized_pnl"],
+                stock["realized_pnl"]
             ])
 
     return send_file(filepath, as_attachment=True)
@@ -140,6 +154,14 @@ def import_portfolio(username):
 
     return redirect(url_for("dashboard", username=username))
 
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    # Clear the session
+    session.pop('username', None)
+
+    # Redirect to the homepage after logout
+    return redirect(url_for('homepage'))
 
 if __name__ == '__main__':
     app.run()
