@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Easy Finance Dashboard</title>
+    <title>EasyFinance Dashboard</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -14,6 +15,16 @@
             color: #333;
             text-align: center;
         }
+
+        .nav-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .header {
             background-color: #0044cc;
             padding: 20px;
@@ -43,11 +54,11 @@
             display: inline-block;
         }
         .dropdown button {
-            background-color: midnightblue;
+            background-color: #191970FF;
             color: white;
             border: none;
             padding: 10px 15px;
-            font-size: 16px;
+            font-size: 14px;
             border-radius: 5px;
             cursor: pointer;
             transition: background 0.3s;
@@ -78,19 +89,27 @@
         .dropdown:hover .dropdown-content {
             display: block;
         }
-        .logout-button {
-            background-color: #d9534f;
+
+                .logout-button {
+            padding: 10px 16px;
+            background-color: midnightblue;
             color: white;
             border: none;
-            padding: 10px 15px;
-            font-size: 16px;
-            border-radius: 5px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
         }
+
         .logout-button:hover {
-            background-color: #c9302c;
+            background-color: #0d47a1;
+            transform: translateY(-1px);
         }
+
         .welcome-section {
             background-color: #0056b3;
             color: white;
@@ -209,7 +228,7 @@
         }
         /* Import Portfolio Section */
         .import-portfolio {
-            background-color: #003366; /* Dark Blue */
+            background-color: #191970FF; /* Dark Blue */
             color: white;
             padding: 40px;
             border-radius: 0px;
@@ -227,7 +246,7 @@
             margin-bottom: 10px;
         }
         .import-portfolio button {
-            background-color: #3498db;
+            background-color: lightsteelblue;
             color: #003366;
             border: none;
             padding: 10px 20px;
@@ -236,7 +255,7 @@
             border-radius: 5px;
         }
         .import-portfolio button:hover {
-            background-color: dodgerblue;
+            background-color: cornflowerblue;
         }
         .import-portfolio a {
             color: white;
@@ -252,9 +271,11 @@
     </style>
 </head>
 <body>
+
     <div class="header">
-        <img src="https://cdn-icons-png.flaticon.com/128/584/584052.png" alt="Easy Finance Logo">
-        <span class="header-title">Easy Finance</span>
+        <div class="nav-logo">
+            <i class="fas fa-chart-line"></i> EasyFinance
+        </div>
         <div class="header-buttons">
             <div class="dropdown">
                 <button>Menu</button>
@@ -267,9 +288,11 @@
                     <a href="#">Change Risk Tolerance</a>
                 </div>
             </div>
-{#            {% if session.get('username') %} #Currently have not linked the login function #}
-            <form action="{{ url_for('logout') }}" method="POST">
-                <button type="submit" class="logout-button">Logout</button>
+{#            {% if session.get('username') %} #Currently have not linked the login function#}
+            <form action="{{ url_for('logout') }}" method="POST" style ="display:inline;">
+                <button type="submit" class="logout-button">
+                        <i class="fas fa-sign-out-alt"></i>Logout
+                </button>
             </form>
 {#            {% endif %}#}
         </div>
