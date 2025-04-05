@@ -92,7 +92,7 @@ body {
 	background: #3498db;
 	color: white;
 	padding: 10px 15px;
-	font-size: 18px;
+	font-size: 15px;
 	border: none;
 	cursor: pointer;
 	border-radius: 5px;
@@ -146,6 +146,15 @@ nav a {
 	text-decoration: none;
 	font-weight: bold;
 }
+
+.nav-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
 .hero {
 	background-color: #0056b3;
@@ -412,4 +421,3 @@ nav {
 	.btn {
 		width: 100%;
 	}
-}
