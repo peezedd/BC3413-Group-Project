@@ -56,11 +56,14 @@ def init_db():
             username TEXT,
             ticker TEXT,
             shares INTEGER,
+            share_check INTEGER,
+            live_price REAL,
             purchase_price REAL,
             purchase_date TEXT,
             sale_price REAL DEFAULT NULL,
             sale_date TEXT DEFAULT NULL,
             realized_profit_loss REAL DEFAULT NULL,
+            unrealized_profit_loss REAL DEFAULT NULL,
             FOREIGN KEY (username) REFERENCES users(username)
         )
     ''')
