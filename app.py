@@ -281,8 +281,8 @@ def get_stock_info():
         if chart_base64 is None:
             return jsonify({"error": "Chart could not be generated."}), 500
 
-        # Render the template and pass the data to it
-        return render_template("Stock_Information.html", stock_data=stock_data, chart=chart_base64)
+    # Render the template and pass the data to it
+    return render_template("Stock_Information.html", stock_data=stock_data, chart=chart_base64)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -296,9 +296,8 @@ def get_stock_recommendation_and_metrics():
         return jsonify({"error": "Ticker symbol is required."}), 400
 
     try:
-    risk_tolerance=risk_tolerance #####hi not sure if this works idh the code for risk tolerance backend yett
-    # Get recommendation
-    result = recommend_stocks(ticker, risk_tolerance)
+        session['risk_tolerance']=risk_tolerance  
+        result = recommend_stocks(ticker, risk_tolerance)
 
     if "error" in result:
         return jsonify({"error": result["error"]}), 404
