@@ -19,14 +19,14 @@ conn = init_db()
 usa_large_companies, stock_info, nasdaq_data, sp_data = load_csv_data()
 insert_data_to_db(conn, stock_info)
 
-
+# Homepage -----------------------------------------------------------------------------
 @app.route('/', methods=['GET', 'POST'])
 def homepage():
     if request.method == 'POST':
         return redirect(url_for('homepage'))
     return render_template('homepage.html')
 
-
+#Dashboard ---------------------------------------------------------------------------------
 @app.route("/dashboard/<username>")
 def dashboard(username):
     conn = init_db()
@@ -154,7 +154,7 @@ def import_portfolio(username):
 
     return redirect(url_for("dashboard", username=username))
 
-
+# Log out -----------------------------------------------------------------
 @app.route("/logout", methods=["POST"])
 def logout():
     # Clear the session
@@ -162,6 +162,11 @@ def logout():
 
     # Redirect to the homepage after logout
     return redirect(url_for('homepage'))
+
+#Recommendations ---------------------------------------------
+@app.route('/recommendations')
+def recommendations():
+    return render_template('Recommendations.html')
 
 if __name__ == '__main__':
     app.run()
