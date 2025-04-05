@@ -3,6 +3,7 @@ import sqlite3
 import json
 import csv
 import datetime
+import nltk
 from db import init_db, view_portfolio, visualise_portfolio, load_csv_data, insert_data_to_db, fetch_stock_data
 from werkzeug.utils import secure_filename
 import os
@@ -14,7 +15,6 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import requests
-import nltk
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
@@ -282,7 +282,7 @@ def get_stock_info():
             return jsonify({"error": "Chart could not be generated."}), 500
 
     # Render the template and pass the data to it
-    return render_template("Stock_Information.html", stock_data=stock_data, chart=chart_base64)
+        return render_template("Stock_Information.html", stock_data=stock_data, chart=chart_base64)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -299,16 +299,16 @@ def get_stock_recommendation_and_metrics():
         session['risk_tolerance']=risk_tolerance  
         result = recommend_stocks(ticker, risk_tolerance)
 
-    if "error" in result:
-        return jsonify({"error": result["error"]}), 404
+        if "error" in result:
+            return jsonify({"error": result["error"]}), 404
     
-    # Render the template and pass the data to it
-    return render_template(
-        "Recommendations.html",
-        stock_data=result["stock_data"],
-        risk_info=result["risk_info"],
-        recommendation=result["recommendation"]
-    )
+        # Render the template and pass the data to it
+        return render_template(
+            "Recommendations.html",
+            stock_data=result["stock_data"],
+            risk_info=result["risk_info"],
+            recommendation=result["recommendation"]
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
