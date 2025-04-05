@@ -6,6 +6,15 @@ import datetime
 from db import init_db, view_portfolio, visualise_portfolio, load_csv_data, insert_data_to_db, fetch_stock_data
 from werkzeug.utils import secure_filename
 import os
+import yfinance as yf
+import matplotlib.pyplot as plt
+import io
+import base64
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import requests
+import nltk
 
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
@@ -163,10 +172,170 @@ def logout():
     # Redirect to the homepage after logout
     return redirect(url_for('homepage'))
 
-#Recommendations ---------------------------------------------
-@app.route('/recommendations')
-def recommendations():
-    return render_template('Recommendations.html')
+cache = {}
+cache_expired = timedelta(minutes=30)
+
+def fetch_stock_data(ticker):
+    stock = yf.Ticker(ticker)
+    info = stock.info
+    hist = stock.history(period="1y")
+    returns = hist['Close'].pct_change().dropna()
+    return {
+        'Ticker': ticker,
+        'Company': info.get('shortName', 'N/A'),
+        'Sector': info.get('sector', 'N/A'),
+        'Industry': info.get('industry', 'N/A'),
+        'Market Cap': info.get('marketCap', 'N/A'),
+        'Previous Close': info.get('previousClose', 'N/A'),
+        'Trailing PE': info.get('trailingPE', 'N/A'),
+        'Forward PE': info.get('forwardPE', 'N/A'),
+        'Returns': returns.to_dict()  # Optional, if you want to send it
+    }
+
+def generate_chart_base64(ticker):
+    stock = yf.Ticker(ticker)
+    history = stock.history(period="6mo")
+
+    if history.empty:
+        return None
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(history.index, history['Close'], label=f"{ticker} Price", color="blue")
+    plt.title(f"{ticker} Stock Price (Last 6 Months)")
+    plt.xlabel("Date")
+    plt.ylabel("Closing Price ($)")
+    plt.legend()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    base64_img = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close()
+    return base64_img
+
+def recommend_stocks(ticker, risk_tolerance):
+    stock_data = fetch_stock_data(ticker)
+    risk_info = calculate_risk_info(stock_data)
+
+    if stock_data['Trailing PE'] is None or risk_info is None:
+        return {"error": f"No P/E ratio or risk data available for {ticker}."}
+
+    pe_ratio = stock_data['Trailing PE']
+    industry_avg_pe = 20  # Assume industry avg P/E
+
+    if risk_tolerance == "Low":
+        sharpe_threshold = 1.5
+    elif risk_tolerance == "Medium":
+        sharpe_threshold = 1.0
+    else:
+        sharpe_threshold = 0.5
+
+    if pe_ratio < industry_avg_pe * 0.8 and risk_info["sharpe_ratio"] > sharpe_threshold:
+        recommendation = f"✅ {ticker} is undervalued and within your risk tolerance. Consider adding."
+    elif pe_ratio > industry_avg_pe * 1.2 or risk_info["sharpe_ratio"] < sharpe_threshold:
+        recommendation = f"⚠️ {ticker} may be overvalued or outside your risk tolerance. Consider avoiding."
+    else:
+        recommendation = f"⏸️ {ticker} is fairly valued and within risk tolerance. Consider holding."
+
+    return {
+        "stock_data": stock_data,
+        "risk_info": risk_info,
+        "recommendation": recommendation
+    }
+
+def show_overall_results(ticker, sentiment_scores):
+    if not sentiment_scores:
+        return {"label": "Neutral", "score": 0}
+
+    scores = [score for _, score, _ in sentiment_scores]
+    avg_score = sum(scores) / len(scores)
+
+    if avg_score >= 0.05:
+        label = "Positive"
+    elif avg_score <= -0.05:
+        label = "Negative"
+    else:
+        label = "Neutral"
+
+    return {"label": label, "score": avg_score}
+
+def format_headline_data(sentiment_scores):
+    data = []
+    for headline, score, url in sentiment_scores:
+        data.append({
+            "headline": headline,
+            "score": round(score, 2),
+            "url": url
+        })
+    return data
+
+@app.route("/get_stock_info")
+def get_stock_info():
+    ticker = request.args.get("ticker", "").upper()
+    if not ticker:
+        return jsonify({"error": "Missing ticker symbol"}), 400
+
+    try:
+        stock_data = fetch_stock_data(ticker)
+        chart_base64 = generate_chart_base64(ticker)
+        if chart_base64 is None:
+            return jsonify({"error": "Chart could not be generated."}), 500
+
+        # Render the template and pass the data to it
+        return render_template("Stock_Information.html", stock_data=stock_data, chart=chart_base64)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/get_stock_recommendation_and_metrics')
+def get_stock_recommendation_and_metrics():
+    ticker = request.args.get('ticker', '').upper()
+
+    if not ticker:
+        return jsonify({"error": "Ticker symbol is required."}), 400
+
+    try:
+    risk_tolerance=risk_tolerance #####hi not sure if this works idh the code for risk tolerance backend yett
+    # Get recommendation
+    result = recommend_stocks(ticker, risk_tolerance)
+
+    if "error" in result:
+        return jsonify({"error": result["error"]}), 404
+    
+    # Render the template and pass the data to it
+    return render_template(
+        "Recommendations.html",
+        stock_data=result["stock_data"],
+        risk_info=result["risk_info"],
+        recommendation=result["recommendation"]
+    )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/get_market_sentiment")
+def market_sentiment():
+    ticker = request.args.get("ticker", "").upper()
+    if not ticker:
+        return jsonify({"error": "Missing ticker"}), 400
+
+    try:
+        result = fetch_market_sentiment(ticker)
+        if not result:
+            return jsonify({"error": "Failed to retrieve data"}), 500
+
+        overall_data, headline_data = result
+
+        # Render the template and pass the data to it
+        return render_template(
+            "Market_Sentiment.html",
+            ticker=ticker,
+            overall_sentiment=overall_data,
+            headlines=headline_data
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
